@@ -1,9 +1,12 @@
 package java.net
 
-// Ported from Harmony
 
 import scala.annotation.tailrec
 
+/** Provides a URLEncoder compatible with the java library.
+  *
+  * Ported from Apache Harmony.
+  */
 object URLEncoder {
   private[this] val digits = "0123456789ABCDEF".toCharArray
 
@@ -11,8 +14,10 @@ object URLEncoder {
     if (s == null || enc == null) {
       throw new NullPointerException
     }
-    // check for UnsupportedEncodingException
+    // forces a check for UnsupportedEncodingException
     "".getBytes(enc)
+
+    // + 16 is an assumption that the encoded string will be a "bit bigger" than original.
     val buf   = new java.lang.StringBuilder(s.length + 16)
     var start = -1
     @tailrec
