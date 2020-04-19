@@ -2,12 +2,12 @@ package java.io
 
 object BufferedInputStreamSuite extends tests.Suite {
 
+  val exampleBytes0 = List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).map(_.toByte).toArray[Byte]
+
   test("creating a buffer of negative size throws IllegalArgumentException") {
     assertThrows[IllegalArgumentException] {
-      val inputArray =
-        List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).map(_.toByte).toArray[Byte]
 
-      val arrayIn = new ByteArrayInputStream(inputArray, 0, 10)
+      val arrayIn = new ByteArrayInputStream(exampleBytes0, 0, 10)
 
       val in = new BufferedInputStream(arrayIn, -1)
     }
@@ -15,10 +15,7 @@ object BufferedInputStreamSuite extends tests.Suite {
 
   test("simple reads") {
 
-    val inputArray =
-      List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).map(_.toByte).toArray[Byte]
-
-    val arrayIn = new ByteArrayInputStream(inputArray, 0, 10)
+    val arrayIn = new ByteArrayInputStream(exampleBytes0, 0, 10)
 
     val in = new BufferedInputStream(arrayIn)
 
@@ -40,10 +37,7 @@ object BufferedInputStreamSuite extends tests.Suite {
 
   test("read to closed buffer throws IOException") {
 
-    val inputArray =
-      List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).map(_.toByte).toArray[Byte]
-
-    val arrayIn = new ByteArrayInputStream(inputArray, 0, 10)
+    val arrayIn = new ByteArrayInputStream(exampleBytes0, 0, 10)
 
     val in = new BufferedInputStream(arrayIn)
 
@@ -89,11 +83,8 @@ object BufferedInputStreamSuite extends tests.Suite {
 
   }
 
-  test("mark and reset behave correctly") {
-    val inputArray =
-      List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).map(_.toByte).toArray[Byte]
-
-    val arrayIn = new ByteArrayInputStream(inputArray, 0, 10)
+  test("reset throws IOException if no prior mark") {
+    val arrayIn = new ByteArrayInputStream(exampleBytes0, 0, 10)
 
     val in = new BufferedInputStream(arrayIn)
 
@@ -102,8 +93,10 @@ object BufferedInputStreamSuite extends tests.Suite {
     in.read()
 
     assertThrows[IOException](in.reset())
+  }
 
-    in.mark(3)
+  test("reset moves position to mark") {
+    in.mark(Int.MaxValue)
 
     assert(in.read() == 3)
     assert(in.read() == 4)
@@ -114,17 +107,26 @@ object BufferedInputStreamSuite extends tests.Suite {
     assert(in.read() == 3)
     assert(in.read() == 4)
     assert(in.read() == 5)
-    assert(in.read() == 6)
-    assert(in.read() == 7)
-    assert(in.read() == 8)
-    assert(in.read() == 9)
+  }
 
+  test("mark is invalidated after read limit bytes") {
+
+    in.mark(2)
+
+    assert(in.read() == 3)
+    assert(in.read() == 4)
+
+    in.reset()
+    assert(in.read() == 3)
+    assert(in.read() == 4)
+    assert(in.read() == 5)
+
+    assertThrows[IOException](in.reset())
   }
 
   test("available behave correctly") {
 
-    val inputArray = Array(0, 1, 2, 3, 4, 5, 6, 7, 8, 9).map(_.toByte)
-    val in         = new BufferedInputStream(new ByteArrayInputStream(inputArray))
+    val in         = new BufferedInputStream(new ByteArrayInputStream(exampleBytes))
 
     assert(in.available() > 0)
 
