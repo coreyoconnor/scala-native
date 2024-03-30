@@ -136,6 +136,11 @@ pkg_add boehm-gc # optional
 
 **Nix/NixOS**
 
+For use with `nix develop` see [typelevel nix](https://github.com/typelevel/typelevel-nix). This provides a
+[devshell](https://numtide.github.io/devshell/) module suitable for Scala Native development.
+
+A minimal setup for `nix-shell` can be started with:
+
 ``` shell
 wget https://raw.githubusercontent.com/scala-native/scala-native/main/scripts/scala-native.nix
 nix-shell scala-native.nix -A clangEnv
