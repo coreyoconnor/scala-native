@@ -30,7 +30,7 @@ This will:
     -   [project/plugins.sbt](https://github.com/scala-native/scala-native.g8/blob/main/src/main/g8/project/plugins.sbt) adds the Scala Native plugin dependency and its version.
     -   [project/build.properties](https://github.com/scala-native/scala-native.g8/blob/main/src/main/g8/project/build.properties) specifies the sbt version.
     -   [build.sbt](https://github.com/scala-native/scala-native.g8/blob/main/src/main/g8/build.sbt) enables the plugin and specifies the Scala version.
-    -   [src/main/scala/Main.scala](https://github.com/scala-native/scala-native.g8/blob/main/src/main/g8/src/main/scala/Main.scala) is a minimal application. 
+    -   [src/main/scala/Main.scala](https://github.com/scala-native/scala-native.g8/blob/main/src/main/g8/src/main/scala/Main.scala) is a minimal application.
         ```scala
             object Main {
               def main(args: Array[String]): Unit =
@@ -108,7 +108,7 @@ nativeConfig ~= { c =>
 }
 
 /* The keen observer will note that "-fuse-ld=mold" could also have been
- *  set using "withCompileOptions". 
+ *  set using "withCompileOptions".
  */
 ```
 
@@ -125,9 +125,10 @@ nativeConfig ~= { c =>
 
 For the details of available `NativeConfig` options see [API](https://javadoc.io/doc/org.scala-native/tools_3/latest/scala/scalanative/build/NativeConfig.html)
 
-1.  See [Publishing](#publishing) and [Cross compilation](#cross-compilation) for details.
-2.  See [Compilation modes](#compilation-modes) for details.
+1.  See [](sbt_publishing) and [](sbt_cross_compilation) for details.
+2.  See [](sbt_compilation_modes) for details.
 
+(sbt_compilation_modes)=
 ## Compilation modes
 
 Scala Native supports three distinct linking modes:
@@ -248,6 +249,7 @@ platform.
 You may use [`FatELF](https://icculus.org/fatelf/) to build
 fat binaries for Linux.
 
+(sbt_build_target)=
 ## Build target
 
 Setting build target allows you to specify to what type of object your
@@ -265,7 +267,7 @@ nativeConfig ~= { _.withBuildTarget(BuildTarget.libraryDynamic) }
 2.  **libraryDynamic**
 
     Results in dynamic library being built based on entry point methods
-    annotated with `\@exported`, for details see
+    annotated with `@exported`, for details see
     [interop](./interop.md).
 
 3.  **libraryStatic**
@@ -275,6 +277,7 @@ nativeConfig ~= { _.withBuildTarget(BuildTarget.libraryDynamic) }
     > they might not be able to be catched in the program using static
     > library. Building static library requires LLVM 14 or newer.
 
+(sbt_publishing)=
 ## Publishing
 
 Scala Native supports sbt\'s standard workflow for the package
@@ -290,6 +293,7 @@ distribution:
 Once the jar has been published, it can be resolved through sbt\'s
 standard package resolution system.
 
+(sbt_cross_compilation)=
 ## Cross compilation
 
 [sbt-crossproject](https://github.com/portable-scala/sbt-crossproject)

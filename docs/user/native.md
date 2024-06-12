@@ -119,9 +119,9 @@ expected.
 Scala Native code can include the annotation `@link("z")` for example
 that says link with the `z` library. The compiler will add a link option
 `-lz` for this library to the linking phase of the build if the code
-with the annotation is used. See `interop`{.interpreted-text
-role="ref"}, `Linking with native libraries` section for
-more information.
+with the annotation is used. See
+{ref}`interop/Linking with native libraries <linking_with_native_libraries>`
+section for more information.
 
 This **experimental** feature has been added so the users of your
 published library can avoid the error described above. Use the following

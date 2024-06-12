@@ -28,8 +28,7 @@ object libc {
 
 `extern` on the right hand side of the method definition signifies that
 the body of the method is defined elsewhere in a native library that is
-available on the library path (see [Linking with native
-libraries](#linking-with-native-libraries)). The signature of the
+available on the library path (see [](#linking-with-native-libraries)). The signature of the
 external function must match the signature of the original C function
 (see [Finding the right signature](#finding-the-right-signature)).
 
@@ -70,6 +69,7 @@ equivalent Scala type for each of the arguments:
   |`struct { int x, y; }*`  |`unsafe.Ptr[unsafe.CStruct2[unsafe.CInt, unsafe.CInt]]`[^14][^15]  |
   |`struct { int x, y; }`   |Not supported
 
+(linking_with_native_libraries)=
 ### Linking with native libraries
 
 C compilers typically require to pass an additional `-l mylib` flag to
@@ -120,7 +120,7 @@ For example `vprintf` and `printf` defined in C as:
 
 ``` C
 int vprintf(const char * format, va_list arg);
-int printf(const char * format, ... );  
+int printf(const char * format, ... );
 ```
 
 can be declared in Scala as:
@@ -148,7 +148,7 @@ For `va_list` interop, one can wrap a function in a nicer API like:
 import scala.scalanative.unsafe._
 
 def myprintf(format: CString, args: CVarArg*): CInt =
-  Zone { 
+  Zone {
     mystdio.vprintf(format, toCVarArgList(args.toSeq))
   }
 ```
@@ -161,6 +161,7 @@ myprintf(c"2 + 3 = %d, 4 + 5 = %d", 2 + 3, 4 + 5)
 printf(c"2 + 3 = %d, 4 + 5 = %d", 2 + 3, 4 + 5)
 ```
 
+(exported_methods)=
 ## Exported methods
 
 When linking Scala Native as library, you can mark functions that should
@@ -176,12 +177,15 @@ name of field.
 `int ScalaNativeInit(void);` function is special exported
 function that needs to be called before invoking any code defined in
 Scala Native. It returns `0` on successful initialization
-and non-zero value in the otherwise. For dynamic libraries a constructor
-would be generated to invoke `ScalaNativeInit`[ function
-automatically upon loading library or startup of the program. If for
-some reason you need to disable automatic initialization of Scala Native
+and non-zero value in the otherwise.
+
+For dynamic libraries a constructor
+would be generated to invoke `ScalaNativeInit` function
+automatically upon loading library or startup of the program.
+
+If for some reason you need to disable automatic initialization of Scala Native
 upon loading dynamic library and invoke it manually in user code set
-\`SCALANATIVE_NO_DYLIB_CTOR]{.title-ref} environment variable. You can
+`SCALANATIVE_NO_DYLIB_CTOR` environment variable. You can
 also disable generation of library constructors by defining
 `-DSCALANATIVE_NO_DYLIB_CTOR` in
 NativeConfig::compileOptions of your build.
@@ -524,7 +528,7 @@ using `byteValue.toUByte`, `shortValue.toUShort`, `intValue.toUInt`, `longValue.
 and conversely `unsignedByteValue.toByte`, `unsignedShortValue.toShort`, `unsignedIntValue.toInt`,
 `unsignedLongValue.toLong`, `unsignedSizeValue.toSize`.
 
-Universal equality is supported between signed and unsigned integers, for example `-1.toUByte == 255` or `65535 == -1.toUShort` would yield `true`, 
+Universal equality is supported between signed and unsigned integers, for example `-1.toUByte == 255` or `65535 == -1.toUShort` would yield `true`,
 However, similar to signed integers on JVM, class equality between different (boxed) integer types is not supported.
 Usage of `-1.toUByte.equals(255)` would return `false`, as we're comparing different boxed types (`scala.scalanative.unsigned.UByte` with `java.lang.Integer`)
 

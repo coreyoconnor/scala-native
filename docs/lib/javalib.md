@@ -86,7 +86,7 @@ Some notes on the implementation:
     -   Matcher.requireEnd() - always throws
         UnsupportedOperationException.
 
-    -   
+    -
 
         Matcher.useAnchoringBounds(boolean) - always throws
 
@@ -192,6 +192,7 @@ network is first used.
 
         System.setProperty("java.net.preferIPv6Addresses", "true")
 
+(service_providers)=
 ## Support for discovering service providers
 
 Scala Native implements partial support for using the Java service
@@ -228,7 +229,7 @@ looks like:
 ``` scala
 /* The project defines a Map in a .sbt or .scala file. The Map
  * is then used to configure the available providers.
- *      
+ *
  * The entries of this map have the general form:
  *  "<ServiceName>" -> Seq("<ServiceProviderClassName>")
  *
