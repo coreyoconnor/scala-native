@@ -31,7 +31,7 @@
           gnumake
           (python3.withPackages (python-pkgs: [
             python-pkgs.sphinx
-            python-pkgs.recommonmark
+            python-pkgs.myst-parser
             python-pkgs.sphinx-markdown-tables
             (python-pkgs.callPackage ./nix/sphinx-last-updated-by-git.nix {})
           ]))
