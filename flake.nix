@@ -1,52 +1,59 @@
 {
   description = "scala-native";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/24.05";
-
-  inputs.sbt.url = "github:zaninime/sbt-derivation/master";
-  inputs.sbt.inputs.nixpkgs.follows = "nixpkgs";
-
-  inputs.systems.url = "github:nix-systems/default";
+  inputs = {
+    typelevel-nix.url = "github:typelevel/typelevel-nix";
+    nixpkgs.follows = "typelevel-nix/nixpkgs";
+    flake-utils.follows = "typelevel-nix/flake-utils";
+  };
 
   outputs = {
     self,
     nixpkgs,
-    sbt,
-    systems
+    flake-utils,
+    typelevel-nix
   }:
+  flake-utils.lib.eachDefaultSystem (system:
     let
-      eachSystem = nixpkgs.lib.genAttrs (import systems);
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = [ typelevel-nix.overlays.default ];
+      };
     in
     {
-      devShells = eachSystem (system:
-        let pkgs = nixpkgs.legacyPackages.${system}; in
-        {
-          default = (sbt.mkSbtDerivation.${system}).withOverrides({ stdenv = pkgs.llvmPackages_18.stdenv; }) {
-            pname = "scala-native";
-            version = (builtins.elemAt
-              (
-                builtins.match "^.*current: String = \"([^\"]+)\".*$" (
-                  builtins.readFile "${self}/nir/src/main/scala/scala/scalanative/nir/Versions.scala"
-                )
-              )
-              0
-            );
-            src = self;
-            # set to "" and rebuild to regenerate this.
-            depsSha256 = "sha256-xLudUMf0bi77vWBnLZvft2sALD9GSI7ezpxXObxL/rs=";
-            nativeBuildInputs = [
-              pkgs.async-profiler
-              pkgs.linuxPackages.perf
-            ];
-            buildInputs = with pkgs; [
+      devShell = pkgs.devshell.mkShell {
+        imports = [ typelevel-nix.typelevelShell ];
+        name = "scala-native-shell";
+        devshell.packages = with pkgs; [
+          async-profiler
+          linuxPackages.perf
+          git
+          gnumake
+          (python3.withPackages (python-pkgs: [
+            python-pkgs.sphinx
+            python-pkgs.recommonmark
+            python-pkgs.sphinx-markdown-tables
+            (python-pkgs.callPackage ./nix/sphinx-last-updated-by-git.nix {})
+          ]))
+        ];
+        typelevelShell = {
+          jdk.package = pkgs.jdk17;
+          native = {
+            enable = true;
+            libraries = with pkgs; [
               boehmgc
               libunwind
               zlib
             ];
-            env.NIX_CFLAGS_COMPILE = "-Wno-unused-command-line-argument";
-            hardeningDisable = [ "fortify" ];
           };
-        }
-      );
-    };
+        };
+        env = [
+          {
+            name = "NIX_CFLAGS_COMPILE";
+            value = "-Wno-unused-command-line-argument";
+          }
+        ];
+      };
+    }
+  );
 }
