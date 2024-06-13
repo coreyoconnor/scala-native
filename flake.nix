@@ -26,6 +26,7 @@
         name = "scala-native-shell";
         devshell.packages = with pkgs; [
           async-profiler
+          clang-tools
           linuxPackages.perf
           git
           gnumake
