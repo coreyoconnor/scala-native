@@ -18,7 +18,7 @@ drives like `C` or `D` are perceived as
 `mounted`. So creating new projects in these locations will
 not work.
 In the WSL2 environment, it is recommended to create projects in the
-user files path, e.g /home/\<USER\>/sn-projects.
+user files path, e.g `/home/<USER>/sn-projects`.
 
 
 This will:
@@ -61,7 +61,7 @@ software versions.
 ## Sbt settings and tasks
 
 Use `nativeConfig` in `sbt` to provide settings. This is
-often done in a project\'s `build.sbt`.
+often done in a project's `build.sbt`.
 
 **Warning**: If you change settings you should clean your project to
 remove generated code to be safe.
@@ -78,7 +78,7 @@ accessed.
 To show nativeConfig values active in current scope at any point in
 time:
 
-> sbt\> show nativeConfig
+> sbt> show nativeConfig
 
 To set a new value and replace any previous setting:
 
@@ -137,7 +137,7 @@ Scala Native supports three distinct linking modes:
 
     Default mode. Optimized for shortest compilation time. Runs fewer
     optimizations and is much more suited for iterative development
-    workflow. Similar to clang\'s `-O0`.
+    workflow. Similar to clang's `-O0`.
 
 2.  **release.** (deprecated since 0.4.0)
 
@@ -146,7 +146,7 @@ Scala Native supports three distinct linking modes:
 3.  **release-fast.** (introduced in 0.4.0)
 
     Optimize for runtime performance while still trying to keep quick
-    compilation time and small emitted code size. Similar to clang\'s
+    compilation time and small emitted code size. Similar to clang's
     `-O2` with addition of link-time optimization over the whole
     application code.
 
@@ -154,7 +154,7 @@ Scala Native supports three distinct linking modes:
 
     Optimize for reduced output size while still trying to keep quick
     compilation time and relatively fast runtime performance. Similar to
-    clang\'s `-Oz` with addition of link-time optimization over the
+    clang's `-Oz` with addition of link-time optimization over the
     whole application code.
 
 5.  **release-full.** (introduced in 0.4.0)
@@ -162,7 +162,7 @@ Scala Native supports three distinct linking modes:
     Optimized for best runtime performance, even if hurts compilation
     time and code size. This modes includes a number of more aggresive
     optimizations such type-driven method duplication and more aggresive
-    inliner. Similar to clang\'s `-O3` with addition of link-time
+    inliner. Similar to clang's `-O3` with addition of link-time
     optimization over the whole application code.
 
 ## Garbage collectors
@@ -182,7 +182,7 @@ Scala Native supports three distinct linking modes:
 3.  **boehm.** (default through 0.3.7)
 
     Conservative generational garbage collector. More information is
-    available at the Github project \"ivmai/bdgc\" page.
+    available at the [Github project "ivmai/bdgc" page](https://github.com/ivmai/bdwgc).
 
 4.  **none.** (experimental, introduced in 0.2)
 
@@ -207,7 +207,7 @@ currently supported:
 
 3.  **thin.** (recommended on Clang 3.9 or newer)
 
-    Inlines across Scala/C boundary using LLVM\'s latest [ThinLTO
+    Inlines across Scala/C boundary using LLVM's latest [ThinLTO
     mode](https://clang.llvm.org/docs/ThinLTO.html). Offers both better
     compilation speed and better runtime performance of the generated
     code than the legacy FullLTO mode.
@@ -280,7 +280,7 @@ nativeConfig ~= { _.withBuildTarget(BuildTarget.libraryDynamic) }
 (sbt_publishing)=
 ## Publishing
 
-Scala Native supports sbt\'s standard workflow for the package
+Scala Native supports sbt's standard workflow for the package
 distribution:
 
 1.  Compile your code.
@@ -290,7 +290,7 @@ distribution:
     [bintray](https://github.com/sbt/sbt-bintray) or any other 3rd party
     hosting service.
 
-Once the jar has been published, it can be resolved through sbt\'s
+Once the jar has been published, it can be resolved through sbt's
 standard package resolution system.
 
 (sbt_cross_compilation)=
@@ -301,7 +301,7 @@ is an sbt plugin that lets you cross-compile your projects against all
 three major platforms in Scala: JVM, JavaScript via Scala.js, and native
 via Scala Native. It is based on the original cross-project idea from
 Scala.js and supports the same syntax for existing JVM/JavaScript
-cross-projects. Please refer to the project\'s
+cross-projects. Please refer to the project's
 [README](https://github.com/portable-scala/sbt-crossproject/blob/master/README.md)
 for details.
 

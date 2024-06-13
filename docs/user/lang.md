@@ -23,7 +23,7 @@ as the state is never shared between threads.
 Scala Native tries to follow the Java Memory Model, but by default uses
 more relaxed semantics in some areas. Due to the majority of immutable
 shared states in most Scala programs, Scala Native does not follow Java
-final fields semantics. Safe publication of final fields (val\`s in
+final fields semantics. Safe publication of final fields (`val`s in
 Scala) can be enabled by annotating fields or the whole class with
 `@scala.scalanative.annotation.safePublish`, this
 behaviour can be also enabled on whole project scope by providing a

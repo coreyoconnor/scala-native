@@ -5,7 +5,7 @@ with foreign native code. This includes C and other languages that can
 expose APIs via C ABI (e.g. C++, D, Rust etc.)
 
 All of the interop APIs discussed here are defined in
-`scala.scalanative.unsafe` package. For brevity, we\'re going to refer
+`scala.scalanative.unsafe` package. For brevity, we're going to refer
 to that namespace as just `unsafe`.
 
 ## Extern objects
@@ -15,7 +15,7 @@ methods are treated as their native C ABI-friendly counterparts. They
 are roughly analogous to header files with top-level function
 declarations in C.
 
-For example, to call C\'s `malloc` one might declare it as following:
+For example, to call C's `malloc` one might declare it as following:
 
 ``` scala
 import scala.scalanative.unsafe._
@@ -114,7 +114,7 @@ more than once.
 
 ### Variadic functions
 
-Scala Native supports native interoperability with C\'s variadic
+Scala Native supports native interoperability with C's variadic
 argument list type (i.e. `va_list`), and partially for `...` varargs.
 For example `vprintf` and `printf` defined in C as:
 
@@ -135,7 +135,7 @@ object mystdio {
 }
 ```
 
-The limitation of `...` interop requires that it\'s
+The limitation of `...` interop requires that it's
 arguments needs to passed directly to variadic arguments function or
 arguments need to be inlined. This is required to obtain enough
 information on how arguments show be passed in regards to C ABI. Passing
@@ -235,7 +235,7 @@ int main(int argc, char** argv){
 
 ## Pointer types
 
-Scala Native provides a built-in equivalent of C\'s pointers via
+Scala Native provides a built-in equivalent of C's pointers via
 `unsafe.Ptr[T]` data type. Under the hood pointers are implemented using
 unmanaged machine pointers.
 
@@ -289,7 +289,7 @@ val func: StringLengthFn = CFuncPtr.fromPtr[StringLengthFn](anyPtr)
 func(c"hello")
 ```
 
-It\'s also possible to create `CFuncPtrN` from Scala
+It's also possible to create `CFuncPtrN` from Scala
 `FunctionN`. You can do this by using implicit method
 conversion method from the corresponding companion object.
 
@@ -341,7 +341,7 @@ unmanaged memory.
     to a single element. Memory is zeroed out by default.
 
     Zone allocation is the preferred way to allocate temporary unmanaged
-    memory. It\'s idiomatic to use implicit zone parameters to abstract
+    memory. It's idiomatic to use implicit zone parameters to abstract
     over code that has to zone allocate.
 
     One typical example of this are C strings that are created from
@@ -369,19 +369,19 @@ unmanaged memory.
     >
     > When using stack allocated memory one has to be careful not to
     > capture this memory beyond the lifetime of the method.
-    > Dereferencing stack allocated memory after the method\'s execution
+    > Dereferencing stack allocated memory after the method's execution
     > has completed is undefined behavior.
 
 3.  **Manual heap allocation.**
 
-    > Scala Native\'s library contains a bindings for a subset of the
+    > Scala Native's library contains a bindings for a subset of the
     > standard libc functionality. This includes the trio of `malloc`,
     > `realloc` and `free` functions that are defined in `libc.stdlib`
     > extern object.
     >
-    > Calling those will let you allocate memory using system\'s
+    > Calling those will let you allocate memory using system's
     > standard dynamic memory allocator. Every single manual allocation
-    > must also be freed manually as soon as it\'s not needed any
+    > must also be freed manually as soon as it's not needed any
     > longer.
     >
     > Apart from the standard system allocator one might also bind to
