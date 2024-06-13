@@ -78,7 +78,7 @@ accessed.
 To show nativeConfig values active in current scope at any point in
 time:
 
-> sbt> show nativeConfig
+    show nativeConfig
 
 To set a new value and replace any previous setting:
 
