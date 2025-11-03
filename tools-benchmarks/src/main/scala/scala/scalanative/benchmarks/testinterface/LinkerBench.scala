@@ -11,6 +11,7 @@ import scala.concurrent.duration._
 
 import org.openjdk.jmh.annotations.Mode._
 import org.openjdk.jmh.annotations._
+import org.openjdk.jmh.infra.Blackhole
 
 @Fork(1)
 @State(Scope.Benchmark)
@@ -36,13 +37,13 @@ class LinkerBench {
   }
 
   @Benchmark
-  def link(): Unit = util.Scope { implicit scope =>
+  def link(blackhole: Blackhole): Unit = util.Scope { implicit scope =>
     val config = defaultConfig
       .withBaseDir(workdir)
       .withMainClass(Some(TestMain))
 
     val entries = build.ScalaNative.entries(config)
     val link = build.ScalaNative.link(config, entries)
-    Await.result(link, Duration.Inf)
+    blackhole.consume(Await.result(link, Duration.Inf))
   }
 }
