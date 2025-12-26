@@ -15,9 +15,27 @@ sealed abstract class ClassLoader {
 
   def load(global: nir.Global.Top): Option[Seq[nir.Defn]]
 
+  def loadable(name: nir.Global): Option[ClassLoader.Loadable]
 }
 
 object ClassLoader {
+  sealed trait Loadable {
+    val name: nir.Global
+    val sourceId: Int
+    def load: Option[Seq[nir.Defn]]
+  }
+  case class ClassPathLoadable(name: nir.Global, classpath: ClassPath) extends Loadable {
+    val sourceId: Int = classpath.hashCode()
+    def load: Option[Seq[nir.Defn]] = classpath.load(name.top)
+  }
+  case class MemoryLoadable(name: nir.Global, fromMemory: FromMemory) extends Loadable {
+    val sourceId: Int = fromMemory.hashCode()
+    def load: Option[Seq[nir.Defn]] = fromMemory.load(name.top)
+  }
+
+  object Loadable {
+    implicit def loadableOrder: Ordering[Loadable] = Ordering.by[Loadable, Int](_.sourceId)
+  }
 
   def fromDisk(config: build.Config)(implicit in: Scope): ClassLoader = {
     val classpath = config.classPath.map { path =>
@@ -38,10 +56,14 @@ object ClassLoader {
       classpath.flatMap(_.definedServicesProviders).toMap
 
     def load(global: nir.Global.Top): Option[Seq[nir.Defn]] =
-      classpath.collectFirst {
-        case path if path.contains(global) =>
+      classpath.find(_.contains(global)).flatMap { path =>
           path.load(global)
-      }.flatten
+      }
+
+    def loadable(name: nir.Global): Option[ClassLoader.Loadable] =
+      classpath.find(_.contains(name.top)).map { path =>
+        ClassPathLoadable(name, path)
+      }
   }
 
   final class FromMemory(defns: Seq[nir.Defn]) extends ClassLoader {
@@ -71,6 +93,8 @@ object ClassLoader {
     def load(global: nir.Global.Top): Option[Seq[nir.Defn]] =
       scopes.get(global).map(_.toSeq)
 
+    def loadable(name: nir.Global): Option[ClassLoader.Loadable] =
+      scopes.get(name.top).map(_ => MemoryLoadable(name, this))
   }
 
 }
