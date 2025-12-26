@@ -89,8 +89,9 @@ private[scalanative] object ScalaNative {
         case Success(result) => logLinked(config, result, stage)
       }
       .flatMap {
-        case result: ReachabilityAnalysis.Result =>
+        case result: ReachabilityAnalysis.Result => config.logger.time(s"check ${stage}") {
           check(config, forceQuickCheck = forceQuickCheck)(result)
+        }
         case result: ReachabilityAnalysis.Failure =>
           Future.failed(
             new LinkingException(
