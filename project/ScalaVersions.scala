@@ -62,10 +62,10 @@ object ScalaVersions {
   val sbt10ScalaVersion: String = scala212
 
   val libCrossScalaVersions: Seq[String] = Seq(
-    crossScala212,
-    crossScala213,
-    crossScala3,
-    Seq(scala3Nightly)
+    // crossScala212,
+    // crossScala213,
+    crossScala3
+    // Seq(scala3Nightly)
   ).flatten.distinct
 
   private def extraCrossScalaVersion(binVersionPrefix: String) = sys.env
