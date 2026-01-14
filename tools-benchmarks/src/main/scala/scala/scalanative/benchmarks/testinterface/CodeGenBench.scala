@@ -47,10 +47,19 @@ abstract class CodeGenBench(nativeConfig: NativeConfig => NativeConfig) {
   @TearDown(Level.Trial)
   def cleanup(): Unit = {
     val workdir = config.baseDir
-    Files
-      .walk(workdir)
-      .sorted(Comparator.reverseOrder())
-      .forEach(Files.delete)
+
+    var retry = 2
+    while(
+      scala.util.Try(
+        Files
+          .walk(workdir)
+          .sorted(Comparator.reverseOrder())
+          .forEach(Files.delete)
+      ).isFailure && retry > 0
+    ) {
+      retry -= 1
+    }
+
     analysis = null
     config = null
   }
