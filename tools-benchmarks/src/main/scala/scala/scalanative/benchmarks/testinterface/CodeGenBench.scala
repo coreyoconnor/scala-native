@@ -49,14 +49,14 @@ abstract class CodeGenBench(nativeConfig: NativeConfig => NativeConfig) {
     val workdir = config.baseDir
 
     var retry = 2
-    while(
-      scala.util.Try(
-        Files
-          .walk(workdir)
-          .sorted(Comparator.reverseOrder())
-          .forEach(Files.delete)
-      ).isFailure && retry > 0
-    ) {
+    while (scala.util
+          .Try(
+            Files
+              .walk(workdir)
+              .sorted(Comparator.reverseOrder())
+              .forEach(Files.delete)
+          )
+          .isFailure && retry > 0) {
       retry -= 1
     }
 

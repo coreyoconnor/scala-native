@@ -5,14 +5,13 @@ import java.io.IOException
 import java.nio.file.attribute.{BasicFileAttributes, DosFileAttributes}
 import java.nio.file.{
   AccessDeniedException, FileSystems, FileVisitOption, FileVisitResult, Files,
-  Path, Paths, SimpleFileVisitor, StandardCopyOption
+  NoSuchFileException, Path, Paths, SimpleFileVisitor, StandardCopyOption
 }
 import java.security.{DigestInputStream, MessageDigest}
 import java.util.EnumSet
 import java.util.zip.{ZipEntry, ZipInputStream}
 
 import scala.util.control.NonFatal
-import java.nio.file.NoSuchFileException
 
 /** Internal I/O utilities. */
 private[scalanative] object IO {
