@@ -12,6 +12,7 @@ import java.util.EnumSet
 import java.util.zip.{ZipEntry, ZipInputStream}
 
 import scala.util.control.NonFatal
+import java.nio.file.NoSuchFileException
 
 /** Internal I/O utilities. */
 private[scalanative] object IO {
@@ -169,25 +170,29 @@ private[scalanative] object IO {
       // If retrying the cleanup give OS a bit of time to close any pending locks
       if (shouldRetry) Thread.sleep(50)
       shouldRetry = false
-      Files.walkFileTree(
-        directory,
-        new SimpleFileVisitor[Path]() {
-          override def visitFile(
-              file: Path,
-              attrs: BasicFileAttributes
-          ): FileVisitResult = {
-            tryDelete(file)
-            FileVisitResult.CONTINUE
+      try {
+        Files.walkFileTree(
+          directory,
+          new SimpleFileVisitor[Path]() {
+            override def visitFile(
+                file: Path,
+                attrs: BasicFileAttributes
+            ): FileVisitResult = {
+              tryDelete(file)
+              FileVisitResult.CONTINUE
+            }
+            override def postVisitDirectory(
+                dir: Path,
+                exc: IOException
+            ): FileVisitResult = {
+              tryDelete(dir)
+              FileVisitResult.CONTINUE
+            }
           }
-          override def postVisitDirectory(
-              dir: Path,
-              exc: IOException
-          ): FileVisitResult = {
-            tryDelete(dir)
-            FileVisitResult.CONTINUE
-          }
-        }
-      )
+        )
+      } catch {
+        case ex: NoSuchFileException => ()
+      }
       remainingRetries -= 1
     }
   }
