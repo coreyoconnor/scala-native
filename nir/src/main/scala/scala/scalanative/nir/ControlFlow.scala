@@ -47,23 +47,8 @@ private[scalanative] object ControlFlow {
   )
 
   object Graph {
-    def apply(insts: Seq[Inst]): Graph = {
-      assert(insts.nonEmpty)
-
-      val locations = {
-        val entries = mutable.Map.empty[Local, (Int, Inst.Label)]
-        var i = 0
-        insts.foreach { inst =>
-          inst match {
-            case inst: Inst.Label => entries(inst.id) = (i, inst)
-            case _                => ()
-          }
-
-          i += 1
-        }
-
-        entries
-      }
+    def apply(insts: InstSeq): Graph = {
+      val locations = insts.labelLocations
 
       val blocks = mutable.Map.empty[Local, Block]
       var todo = List.empty[Block]
@@ -77,16 +62,7 @@ private[scalanative] object ControlFlow {
       def block(local: Local)(implicit pos: SourcePosition): Block =
         blocks.getOrElseUpdate(
           local, {
-            val (k, Inst.Label(n, params)) = locations(local)
-
-            // copy all instruction up until and including
-            // first control-flow instruction after the label
-            val firstInst = k + 1
-            val body = insts.slice(
-              firstInst,
-              insts.indexWhere(_.isInstanceOf[Inst.Cf], from = firstInst) + 1
-            )
-
+            val (k, n, params, body) = insts.sliceAfter(local)
             val block = Block(n, params, body, isEntry = k == 0)
             todo ::= block
             block
@@ -130,7 +106,7 @@ private[scalanative] object ControlFlow {
         }
       }
 
-      val entryInst = insts.head.asInstanceOf[Inst.Label]
+      val entryInst = insts.entryLabel
       val entry = block(entryInst.id)(entryInst.pos)
       val visited = mutable.Set.empty[Local]
 
@@ -144,24 +120,21 @@ private[scalanative] object ControlFlow {
         }
       }
 
-      val all = insts.collect {
-        case Inst.Label(id, _) if visited.contains(id) =>
-          blocks(id)
-      }
+      val all = insts.labelsIn(visited) map blocks.apply
 
       new Graph(entry, all, blocks)
     }
   }
 
-  def removeDeadBlocks(insts: Seq[Inst]): Seq[Inst] = {
+  def removeDeadBlocks(insts: InstSeq): InstSeq = {
     val cfg = ControlFlow.Graph(insts)
-    val buf = new nir.InstructionBuilder()(Fresh(insts))
+    val buf = new nir.InstructionBuilder()(insts.fresh)
 
     cfg.all.foreach { b =>
       buf += b.label
       buf ++= b.insts
     }
 
-    buf.toSeq
+    buf.toInstSeq
   }
 }
