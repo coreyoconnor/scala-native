@@ -22,7 +22,7 @@ case class InstSeq() {
       //   entries
       // }
 
-  def sliceAfter(label: Local): (Int, Local, Seq[Val.Local], Seq[Inst]) = ???
+  def sliceUntilControlFlow(label: Local): (Int, Local, Seq[Val.Local], Seq[Inst]) = ???
             // val (k, Inst.Label(n, params)) = locations(local)
             //
             // // copy all instruction up until and including

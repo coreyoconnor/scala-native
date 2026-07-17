@@ -62,7 +62,7 @@ private[scalanative] object ControlFlow {
       def block(local: Local)(implicit pos: SourcePosition): Block =
         blocks.getOrElseUpdate(
           local, {
-            val (k, n, params, body) = insts.sliceAfter(local)
+            val (k, n, params, body) = insts.sliceUntilControlFlow(local)
             val block = Block(n, params, body, isEntry = k == 0)
             todo ::= block
             block
