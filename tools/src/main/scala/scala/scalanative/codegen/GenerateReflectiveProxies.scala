@@ -28,7 +28,7 @@ private[codegen] object GenerateReflectiveProxies {
       nir.Attrs.fromSeq(Seq(nir.Attr.Dyn)),
       nir.Global.Member(owner, sig.toProxy),
       proxyTy,
-      Seq(
+      IndexedSeq(
         Seq(label),
         unboxInsts,
         Seq(method, call),

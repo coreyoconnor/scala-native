@@ -198,7 +198,7 @@ private[linker] trait LinktimeIntrinsicCallsResolver { self: Reach =>
   )
   private val serviceProviderLoaders = mutable.Map.empty[Global.Top, Val.Global]
 
-  def resolveIntrinsicsCalls(defn: Defn.Define): Seq[Inst] = {
+  def resolveIntrinsicsCalls(defn: Defn.Define): IndexedSeq[Inst] = {
     val insts = defn.insts
     implicit def logger: Logger = self.config.logger
     implicit val fresh: Fresh = Fresh(insts)

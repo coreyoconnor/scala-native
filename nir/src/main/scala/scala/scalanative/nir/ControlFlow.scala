@@ -12,16 +12,30 @@ import util.unsupported
  *  * What are the successors of given block?
  */
 private[scalanative] object ControlFlow {
+  final case class EdgeBuilder(from: Local, to: Local, next: Next)
+
+  final class BlockBuilder(val id: Local, val k: Int, val inst: Inst.Label, val pos: SourcePosition) {
+    val inEdges = mutable.UnrolledBuffer.empty[EdgeBuilder]
+    val outEdges = mutable.UnrolledBuffer.empty[EdgeBuilder]
+    def instsFrom = k + 1
+    // exclusive bound
+    var instsUntil = k + 1
+  }
+
   final case class Edge(from: Block, to: Block, next: Next)
 
   final case class Block(
       id: Local,
       params: Seq[Val.Local],
-      insts: Seq[Inst],
+      allInsts: IndexedSeq[Inst],
+      instsFrom: Int,
+      instsUntil: Int,
       isEntry: Boolean
   )(implicit val pos: SourcePosition) {
     val inEdges = mutable.UnrolledBuffer.empty[Edge]
     val outEdges = mutable.UnrolledBuffer.empty[Edge]
+
+    def insts: IndexedSeq[Inst] = allInsts.slice(instsFrom, instsUntil)
 
     lazy val splitCount: Int = {
       var count = 0
@@ -47,7 +61,7 @@ private[scalanative] object ControlFlow {
   )
 
   object Graph {
-    def apply(insts: Seq[Inst]): Graph = {
+    def apply(insts: IndexedSeq[Inst]): Graph = {
       assert(insts.nonEmpty)
 
       val locations = {
@@ -65,42 +79,43 @@ private[scalanative] object ControlFlow {
         entries
       }
 
-      val blocks = mutable.Map.empty[Local, Block]
-      var todo = List.empty[Block]
+      val blockBuilds = mutable.Map.empty[Local, BlockBuilder]
 
-      def edge(from: Block, to: Block, next: Next) = {
-        val e = Edge(from, to, next)
+      // stack of local labels of blocks to visit
+      var todo = List.empty[Local]
+
+      def edge(from: BlockBuilder, to: BlockBuilder, next: Next) = {
+        val e = EdgeBuilder(from.id, to.id, next)
         from.outEdges += e
         to.inEdges += e
       }
 
-      def block(local: Local)(implicit pos: SourcePosition): Block =
-        blocks.getOrElseUpdate(
+      def block(local: Local)(implicit pos: SourcePosition): BlockBuilder =
+        blockBuilds.getOrElseUpdate(
           local, {
-            val (k, Inst.Label(n, params)) = locations(local)
-
-            // copy all instruction up until and including
-            // first control-flow instruction after the label
-            val firstInst = k + 1
-            val body = insts.slice(
-              firstInst,
-              insts.indexWhere(_.isInstanceOf[Inst.Cf], from = firstInst) + 1
-            )
-
-            val block = Block(n, params, body, isEntry = k == 0)
-            todo ::= block
-            block
+            val (k, inst) = locations(local)
+            val builder = new BlockBuilder(local, k, inst, pos)
+            todo ::= local
+            builder
           }
         )
 
-      def visit(node: Block): Unit = {
-        val insts :+ cf = node.insts: @unchecked
-        insts.foreach {
-          case inst @ Inst.Let(_, op, unwind) if unwind ne Next.None =>
-            edge(node, block(unwind.id)(inst.pos), unwind)
-          case _ =>
-            ()
+      def visit(node: BlockBuilder): Unit = {
+        var cf: Inst.Cf = null
+        while(cf == null) {
+          insts(node.instsUntil) match {
+            case inst: Inst.Cf => {
+              cf = inst
+            }
+            case inst @ Inst.Let(_, op, unwind) if unwind ne Next.None => {
+              edge(node, block(unwind.id)(inst.pos), unwind)
+            }
+            case _ => ()
+          }
+
+          node.instsUntil += 1
         }
+
         implicit val pos: SourcePosition = cf.pos
 
         cf match {
@@ -125,35 +140,40 @@ private[scalanative] object ControlFlow {
             if (next ne Next.None) {
               edge(node, block(next.id), next)
             }
-          case inst =>
-            unsupported(inst)
         }
       }
 
       val entryInst = insts.head.asInstanceOf[Inst.Label]
-      val entry = block(entryInst.id)(entryInst.pos)
+      val entryBuilder = block(entryInst.id)(entryInst.pos)
       val visited = mutable.Set.empty[Local]
 
       while (todo.nonEmpty) {
-        val block = todo.head
+        val id = todo.head
         todo = todo.tail
-        val id = block.id
         if (!visited(id)) {
           visited += id
-          visit(block)
+          val builder = blockBuilds(id)
+          visit(builder)
         }
       }
 
+      val blocks = mutable.Map.empty[Local, Block]
+
       val all = insts.collect {
-        case Inst.Label(id, _) if visited.contains(id) =>
-          blocks(id)
+        case Inst.Label(id, _) if visited.contains(id) => {
+          val builder = blockBuilds(id)
+
+          val block = Block(builder.id, builder.inst.params, insts, builder.instsFrom, builder.instsUntil, builder.k == 0)(builder.pos)
+          blocks += id -> block
+          block
+        }
       }
 
-      new Graph(entry, all, blocks)
+      new Graph(blocks(entryBuilder.id), all, blocks)
     }
   }
 
-  def removeDeadBlocks(insts: Seq[Inst]): Seq[Inst] = {
+  def removeDeadBlocks(insts: IndexedSeq[Inst]): IndexedSeq[Inst] = {
     val cfg = ControlFlow.Graph(insts)
     val buf = new nir.InstructionBuilder()(Fresh(insts))
 

@@ -159,7 +159,7 @@ final class BinaryDeserializer(buffer: ByteBuffer, nirSource: NIRSource) {
     result
   }
 
-  private def getSeq[T: ClassTag](getT: => T): Seq[T] =
+  private def getSeq[T: ClassTag](getT: => T): IndexedSeq[T] =
     ArraySeqCompat.fill(getLebUnsignedInt())(getT)
   private def getOpt[T](getT: => T): Option[T] =
     if (get == 0) None
@@ -237,7 +237,7 @@ final class BinaryDeserializer(buffer: ByteBuffer, nirSource: NIRSource) {
   }
 
   private def getScopeId() = new ScopeId(getLebUnsignedInt())
-  private def getInsts(): Seq[Inst] = in(prelude.sections.insts) {
+  private def getInsts(): IndexedSeq[Inst] = in(prelude.sections.insts) {
     getSeq(getInst())
   }
   private def getInst(): Inst = {

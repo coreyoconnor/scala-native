@@ -149,7 +149,7 @@ object UseDef {
     defs.toMap
   }
 
-  def eliminateDeadCode(insts: Seq[nir.Inst]): Seq[nir.Inst] = {
+  def eliminateDeadCode(insts: IndexedSeq[nir.Inst]): IndexedSeq[nir.Inst] = {
     val fresh = nir.Fresh(insts)
     val cfg = nir.ControlFlow.Graph(insts)
     val usedef = UseDef(cfg)

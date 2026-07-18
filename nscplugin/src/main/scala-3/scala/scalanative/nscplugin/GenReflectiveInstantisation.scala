@@ -93,7 +93,7 @@ trait GenReflectiveInstantisation(using Context) {
 
   private def registerModuleClass(
       td: TypeDef
-  ): Seq[nir.Inst] = {
+  ): IndexedSeq[nir.Inst] = {
     val fqSymId = curClassSym.get.fullName.mangledString
     val fqSymName = nir.Global.Top(fqSymId)
     val fqcnArg = nir.Val.String(fqSymId)
@@ -119,7 +119,7 @@ trait GenReflectiveInstantisation(using Context) {
 
   private def registerNormalClass(
       td: TypeDef
-  ): Seq[nir.Inst] = {
+  ): IndexedSeq[nir.Inst] = {
     given nir.SourcePosition = td.span
 
     val fqSymId = curClassSym.get.fullName.mangledString
@@ -139,7 +139,7 @@ trait GenReflectiveInstantisation(using Context) {
               denot.asSymDenotation.underlyingSymbol
           }
 
-    if (ctors.isEmpty) Nil
+    if (ctors.isEmpty) IndexedSeq.empty
     else
       withFreshExprBuffer { buf ?=>
         buf.label(curFresh(), Seq.empty)

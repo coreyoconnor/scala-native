@@ -377,7 +377,7 @@ trait NirGenStat(using Context) {
       dd: DefDef,
       bodyp: Tree,
       isExtern: Boolean
-  ): Seq[nir.Inst] = {
+  ): IndexedSeq[nir.Inst] = {
     given nir.SourcePosition = bodyp.span.orElse(dd.span).orElse(dd.symbol.span)
     given fresh: nir.Fresh = curFresh.get
     val buf = ExprBuffer()

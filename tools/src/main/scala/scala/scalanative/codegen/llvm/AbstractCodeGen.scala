@@ -214,7 +214,7 @@ private[codegen] abstract class AbstractCodeGen(
     case nir.Defn.Const(attrs, name, ty, rhs) =>
       genGlobalDefn(attrs, name, isConst = true, ty, rhs)
     case nir.Defn.Declare(attrs, name, sig) =>
-      genFunctionDefn(defn, Seq.empty, nir.Fresh(), DebugInfo.empty)
+      genFunctionDefn(defn, IndexedSeq.empty, nir.Fresh(), DebugInfo.empty)
     case nir.Defn.Define(attrs, name, sig, insts, debugInfo) =>
       genFunctionDefn(defn, insts, nir.Fresh(insts), debugInfo)
     case defn =>
@@ -253,7 +253,7 @@ private[codegen] abstract class AbstractCodeGen(
 
   private[codegen] def genFunctionDefn(
       defn: nir.Defn,
-      insts: Seq[nir.Inst],
+      insts: IndexedSeq[nir.Inst],
       fresh: nir.Fresh,
       debugInfo: DebugInfo
   )(implicit
@@ -388,15 +388,14 @@ private[codegen] abstract class AbstractCodeGen(
       metaCtx: MetadataCodeGen.Context
   ): Unit = {
     import sb._
-    val Block(name, params, insts, isEntry) = block
-    currentBlockName = name
+    currentBlockName = block.id
     currentBlockSplit = 0
 
     genBlockHeader()
     indent()
     os.genBlockAlloca(block)
     genBlockPrologue(block)
-    rep(insts)(genInst)
+    rep(block.insts)(genInst)
     unindent()
   }
 

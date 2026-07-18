@@ -86,7 +86,7 @@ object Defn {
       attrs: Attrs,
       name: Global.Member,
       ty: Type.Function,
-      insts: Seq[Inst],
+      insts: IndexedSeq[Inst],
       debugInfo: Define.DebugInfo = Define.DebugInfo.empty
   )(implicit val pos: SourcePosition)
       extends Defn {

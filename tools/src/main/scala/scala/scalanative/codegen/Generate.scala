@@ -70,8 +70,8 @@ private[codegen] object Generate {
     /* Generate set of instructions using common exception handling, generate method
      * would return 0 if would execute successfully exception and 1 in otherwise */
     private def withExceptionHandler(
-        body: (() => nir.Next.Unwind) => Seq[nir.Inst]
-    )(implicit fresh: nir.Fresh): Seq[nir.Inst] = {
+        body: (() => nir.Next.Unwind) => IndexedSeq[nir.Inst]
+    )(implicit fresh: nir.Fresh): IndexedSeq[nir.Inst] = {
       val exc = nir.Val.Local(fresh(), nir.Rt.Throwable)
       val handler, thread, ueh, uehHandler = fresh()
 
@@ -79,7 +79,7 @@ private[codegen] object Generate {
         val exc = nir.Val.Local(fresh(), nir.Rt.Throwable)
         nir.Next.Unwind(exc, nir.Next.Label(handler, Seq(exc)))
       }
-      body(unwind) ++ Seq(
+      body(unwind) ++ IndexedSeq(
         nir.Inst.Ret(nir.Val.Int(0)),
         nir.Inst.Label(handler, Seq(exc)),
         nir.Inst.Let(
@@ -112,8 +112,8 @@ private[codegen] object Generate {
     /* Generate class initializers to handle class instantiated using reflection */
     private def genClassInitializersCalls(
         unwind: () => nir.Next
-    )(implicit fresh: nir.Fresh): Seq[nir.Inst] = {
-      defns.collect {
+    )(implicit fresh: nir.Fresh): IndexedSeq[nir.Inst] = {
+      defns.toIndexedSeq.collect {
         case defn @ nir.Defn.Define(_, name: nir.Global.Member, _, _, _) if name.sig.isClinit =>
           nir.Inst.Let(
             nir.Op.Call(
@@ -129,7 +129,7 @@ private[codegen] object Generate {
     private def genGcInit(unwindProvider: () => nir.Next)(implicit fresh: nir.Fresh) = {
       def unwind: nir.Next = unwindProvider()
 
-      Seq(
+      IndexedSeq(
         // Init GC
         nir.Inst.Let(nir.Op.Call(InitSig, Init, Seq.empty), unwind)
       )
@@ -145,7 +145,7 @@ private[codegen] object Generate {
         LibraryInitName,
         LibraryInitSig,
         withExceptionHandler { unwindProvider =>
-          Seq(nir.Inst.Label(fresh(), Nil)) ++
+          IndexedSeq(nir.Inst.Label(fresh(), Nil)) ++
             genGcInit(unwindProvider) ++
             genClassInitializersCalls(unwindProvider)
         }
@@ -171,10 +171,10 @@ private[codegen] object Generate {
           val arr = nir.Val.Local(fresh(), ObjectArray)
 
           def unwind = unwindProvider()
-          Seq(nir.Inst.Label(fresh(), Seq(argc, argv))) ++
+          IndexedSeq(nir.Inst.Label(fresh(), Seq(argc, argv))) ++
             genGcInit(unwindProvider) ++
             genClassInitializersCalls(unwindProvider) ++
-            Seq(
+            IndexedSeq(
               nir.Inst.Let(rt.id, nir.Op.Module(Runtime.name), unwind),
               nir.Inst.Let(
                 arr.id,
@@ -262,8 +262,8 @@ private[codegen] object Generate {
              *    instance
              *  }
              */
-            def loadSinglethreadImpl: Seq[nir.Inst] = {
-              Seq(
+            def loadSinglethreadImpl: IndexedSeq[nir.Inst] = {
+              IndexedSeq(
                 nir.Inst.Label(entry, Seq.empty),
                 nir.Inst.Let(slot.id, selectSlot, nir.Next.None),
                 nir.Inst.Let(self.id, nir.Op.Load(clsTy, slot), nir.Next.None),
@@ -295,11 +295,11 @@ private[codegen] object Generate {
              *  Safety of safe multithreaded initialization comes with the increased complexity and overhead.
              *  For single-threaded usage we use the old implementation
              */
-            def loadMultithreadingSafeImpl: Seq[nir.Inst] = {
+            def loadMultithreadingSafeImpl: IndexedSeq[nir.Inst] = {
               val size = meta.layout(cls).size
               val rtti = meta.rtti(cls).const
 
-              Seq(
+              IndexedSeq(
                 nir.Inst.Label(entry, Seq.empty),
                 nir.Inst.Let(slot.id, selectSlot, nir.Next.None),
                 nir.Inst.Let(

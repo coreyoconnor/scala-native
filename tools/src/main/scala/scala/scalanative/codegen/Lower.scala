@@ -166,7 +166,7 @@ private[scalanative] object Lower {
       else unit
     }
 
-    override def onInsts(insts: Seq[nir.Inst]): Seq[nir.Inst] = {
+    override def onInsts(insts: IndexedSeq[nir.Inst]): IndexedSeq[nir.Inst] = {
       val defn = currentDefn.get
       val buf = new nir.InstructionBuilder()(fresh)
       val handlers = new nir.InstructionBuilder()(fresh)
@@ -283,7 +283,9 @@ private[scalanative] object Lower {
               Block(
                 id = id,
                 params = params,
-                insts = insts.slice(instIdx, lastInstIdx + 1),
+                allInsts = insts,
+                instsFrom = instIdx,
+                instsUntil = lastInstIdx + 1,
                 isEntry = false
               )(inst.pos)
             }
@@ -319,9 +321,9 @@ private[scalanative] object Lower {
           logger.synchronized {
             logger.error(
               s"""|Dead code elimnation failed: ${error.getMessage()}
-                  |Original defn: 
+                  |Original defn:
                   |${currentDefn.get.show}
-                  |Lowered instructions: 
+                  |Lowered instructions:
                   |${loweredInsts.zipWithIndex.map { case (inst, idx) => s"${idx.toString().padTo(4, ' ')}| ${inst.show}" }.mkString("\n")}
                   |""".stripMargin
             )

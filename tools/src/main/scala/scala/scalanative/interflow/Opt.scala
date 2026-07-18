@@ -27,7 +27,7 @@ private[interflow] trait Opt { self: Interflow =>
       // Wrap up the result.
       def result(
           retty: nir.Type,
-          rawInsts: Seq[nir.Inst],
+          rawInsts: IndexedSeq[nir.Inst],
           debugInfo: DebugInfo
       ) = {
         val insts = nir.ControlFlow.removeDeadBlocks(rawInsts)
@@ -79,7 +79,7 @@ private[interflow] trait Opt { self: Interflow =>
       // If any of the argument types is nothing, this method
       // is never going to be called, so we don't have to visit it.
       if (args.exists(_.ty == nir.Type.Nothing)) {
-        val insts = Seq(
+        val insts = IndexedSeq(
           nir.Inst.Label(nir.Local(0), args),
           nir.Inst.Unreachable(nir.Next.None)
         )
@@ -110,7 +110,7 @@ private[interflow] trait Opt { self: Interflow =>
 
           // Collect instructions, materialize all returned values
           // and compute the result type.
-          val insts = blocks.flatMap { block =>
+          val insts = blocks.toIndexedSeq.flatMap { block =>
             block.cf = block.cf match {
               case inst @ nir.Inst.Ret(retv) =>
                 nir.Inst.Ret(block.end.materialize(retv))(inst.pos)

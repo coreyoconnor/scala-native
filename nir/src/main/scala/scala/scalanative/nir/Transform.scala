@@ -27,7 +27,7 @@ trait Transform {
     }
   }
 
-  def onInsts(insts: Seq[Inst]): Seq[Inst] =
+  def onInsts(insts: IndexedSeq[Inst]): IndexedSeq[Inst] =
     insts.map(onInst)
 
   def onInst(inst: Inst): Inst = {

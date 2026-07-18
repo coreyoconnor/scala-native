@@ -24,8 +24,8 @@ private[interflow] final class MergeBlock(
   private[interflow] var emitStackSaveOp = false
   private[interflow] var emitStackRestoreFromBlocks: List[MergeBlock] = Nil
 
-  def toInsts(): Seq[nir.Inst] = toInstsCached
-  private lazy val toInstsCached: Seq[nir.Inst] = {
+  def toInsts(): IndexedSeq[nir.Inst] = toInstsCached
+  private lazy val toInstsCached: IndexedSeq[nir.Inst] = {
     import Interflow.LLVMIntrinsics._
     val block = this
     val result = new nir.InstructionBuilder()(nir.Fresh(0))

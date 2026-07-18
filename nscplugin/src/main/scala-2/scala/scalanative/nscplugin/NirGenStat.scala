@@ -384,7 +384,7 @@ trait NirGenStat[G <: nsc.Global with Singleton] { self: NirGenPhase[G] =>
 
     def genRegisterReflectiveInstantiationForModuleClass(
         cd: ClassDef
-    ): Seq[nir.Inst] = {
+    ): IndexedSeq[nir.Inst] = {
       import NirGenSymbols._
 
       val fqSymId = curClassSym.fullName + "$"
@@ -460,7 +460,7 @@ trait NirGenStat[G <: nsc.Global with Singleton] { self: NirGenPhase[G] =>
 
     def genRegisterReflectiveInstantiationForNormalClass(
         cd: ClassDef
-    ): Seq[nir.Inst] = {
+    ): IndexedSeq[nir.Inst] = {
       import NirGenSymbols._
 
       val fqSymId = curClassSym.fullName
@@ -633,7 +633,7 @@ trait NirGenStat[G <: nsc.Global with Singleton] { self: NirGenPhase[G] =>
 
       implicit val pos: nir.SourcePosition = cd.pos
       if (ctors.isEmpty)
-        Seq.empty
+        IndexedSeq.empty
       else
         withFreshExprBuffer { exprBuf =>
           exprBuf.label(curFresh(), Seq.empty)
@@ -1043,7 +1043,7 @@ trait NirGenStat[G <: nsc.Global with Singleton] { self: NirGenPhase[G] =>
         dd: DefDef,
         bodyp: Tree,
         isExtern: Boolean
-    ): Seq[nir.Inst] = {
+    ): IndexedSeq[nir.Inst] = {
       val fresh = curFresh.get
       val buf = new ExprBuffer()(fresh)
       val isSynchronized = dd.symbol.hasFlag(SYNCHRONIZED)
