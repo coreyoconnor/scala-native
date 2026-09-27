@@ -197,9 +197,15 @@ static bool isContinuationStaleTrapFault(int signal, siginfo_t *siginfo,
         return false;
     if (!isAccessPermissionFault(signal, siginfo->si_code))
         return false;
-    if (!atomic_load_explicit(&Synchronizer_stopThreads, memory_order_acquire))
-        return false;
-    return true;
+    // Do not consult Synchronizer_stopThreads here: its value at handler-run
+    // time is a timing-dependent snapshot, not the value at the moment the
+    // fault occurred. The OS may delay signal delivery until after the STW
+    // pause that armed the page has ended and stopThreads has flipped back to
+    // false, in which case a benign stale trap was treated as an unhandled
+    // SIGSEGV/SIGBUS. Page identity is not racy: trap pages are permanent (see
+    // YieldPointTrap.c) and nothing else mprotects a page for this purpose, so
+    // membership is a timing-independent fact.
+    return YieldPointTrap_isRegisteredPage(siginfo->si_addr);
 }
 
 static void SafepointTrapHandler(int signal, siginfo_t *siginfo, void *uap) {
