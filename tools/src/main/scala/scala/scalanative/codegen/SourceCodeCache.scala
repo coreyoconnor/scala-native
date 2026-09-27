@@ -116,6 +116,16 @@ private[codegen] class SourceCodeCache(config: build.Config) {
           .map(_.resolve(packageBasedSourcePath))
           .find(Files.exists(_))
 
+        // fallback, jar referenced by NIR debug info might not be
+        // present (under this exact path) in config.classPath, e.g. it
+        // was copied/relocated after compilation - look for a sibling
+        // sources jar next to it directly, regardless of classPath.
+        def fromSiblingSourcesJar =
+          correspondingSourcesJar(pos.nirSource.directory)
+            .flatMap(unpackSourcesJar)
+            .map(_.resolve(packageBasedSourcePath))
+            .find(Files.exists(_))
+
         // fallback, check other source dirs
         def fromAnySourcesJar =
           classpathJarsSources.values.iterator
@@ -155,6 +165,7 @@ private[codegen] class SourceCodeCache(config: build.Config) {
         fromCorrespondingSourcesJar
           .orElse(fromCustomSourceRoots)
           .orElse(fromRelativePath)
+          .orElse(fromSiblingSourcesJar)
           .orElse(fromAnySourcesJar)
           .orElse {
             if (loggedMissingSourcesForCp.add(pos.nirSource.directory))
