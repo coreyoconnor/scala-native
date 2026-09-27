@@ -18,7 +18,7 @@ private[codegen] class IncrementalCodeGenContext(config: build.Config) {
   private val dumpPackage2hash: Path = config.workDir.resolve("package2hash")
 
   def collectFromPreviousState(): Unit = {
-    if (Build.userConfigHasChanged(config))
+    if (Build.userConfigHasChanged(config, Build.defaultUserConfigHashPath(config)))
       Files.deleteIfExists(dumpPackage2hash)
     else if (Files.exists(dumpPackage2hash)) {
       Source

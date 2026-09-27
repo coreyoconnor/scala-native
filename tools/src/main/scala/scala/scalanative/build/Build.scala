@@ -156,7 +156,7 @@ object Build {
             .map(objects => link(config, linkerResult, objects))
             .map(artifact => postProcess(config, artifact))
         }
-        .andThen { case Success(_) => dumpUserConfigHash(config) }
+        .andThen { case Success(_) => dumpUserConfigHash(config, defaultUserConfigHashPath(config)) }
     }
   }
 
@@ -172,7 +172,7 @@ object Build {
         .sequence {
           irGenerators.map(irGenerator =>
             irGenerator.flatMap(generatedIR =>
-              LLVM.compile(config, analysis, generatedIR)
+              LLVM.compile(config, analysis, generatedIR, defaultUserConfigHashPath(config))
             )
           )
         }
@@ -318,13 +318,38 @@ object Build {
 
   private[scalanative] final val userConfigHashFile = "userConfigHash"
 
-  private[scalanative] def userConfigHasChanged(config: Config): Boolean =
-    IO.readFully(config.workDir.resolve(userConfigHashFile))
+  /** The original workDir-relative location, for call sites checking/dumping
+   *  the top-level config's own hash (as opposed to a per-library one, see
+   *  below). */
+  private[scalanative] def defaultUserConfigHashPath(config: Config): Path =
+    config.workDir.resolve(userConfigHashFile)
+
+  // hashPath is an explicit, required parameter (was implicitly always
+  // config.workDir.resolve(userConfigHashFile); every pre-existing call site
+  // now passes defaultUserConfigHashPath(config) to keep identical behavior).
+  // NativeLib.compileNativeLibrary passes a *per-library* hashPath instead: it
+  // compiles each dependency with a per-library `projConfig`
+  // (configureNativeLibrary appends preprocessor flags per library), but
+  // previously every such check compared that per-library config's hash
+  // against the ONE shared file dumpUserConfigHash writes from the top-level,
+  // un-augmented config -- a structural mismatch, so userConfigHasChanged
+  // effectively always returned true for every vendored C/S dependency file,
+  // defeating LLVM.needsCompiling's mtime check and forcing a full recompile
+  // of the runtime sources on every build regardless of whether anything
+  // changed.
+  private[scalanative] def userConfigHasChanged(
+      config: Config,
+      hashPath: Path
+  ): Boolean =
+    IO.readFully(hashPath)
       .forall(_.trim() != config.compilerConfig.##.toString())
 
-  private[scalanative] def dumpUserConfigHash(config: Config): Unit =
+  private[scalanative] def dumpUserConfigHash(
+      config: Config,
+      hashPath: Path
+  ): Unit =
     IO.write(
-      path = config.workDir.resolve(userConfigHashFile),
+      path = hashPath,
       content = config.compilerConfig.##.toString()
     )
 
