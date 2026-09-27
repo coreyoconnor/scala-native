@@ -297,18 +297,16 @@ private[scalanative] object NativeLib {
       IO.unzip(source, target)
     }
 
-    if (Platform.isJVM) {
-      val jarhash = IO.sha1(source)
-      val jarhashPath = target.resolve("jarhash")
-      def unpacked =
-        Files.exists(target) &&
-          Files.exists(jarhashPath) &&
-          Arrays.equals(jarhash, Files.readAllBytes(jarhashPath))
-      if (!unpacked) {
-        unpack()
-        IO.write(jarhashPath, jarhash)
-      }
-    } else unpack()
+    val jarhash = IO.sha1(source)
+    val jarhashPath = target.resolve("jarhash")
+    def unpacked =
+      Files.exists(target) &&
+        Files.exists(jarhashPath) &&
+        Arrays.equals(jarhash, Files.readAllBytes(jarhashPath))
+    if (!unpacked) {
+      unpack()
+      IO.write(jarhashPath, jarhash)
+    }
     target
   }
 

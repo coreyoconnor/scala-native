@@ -7,7 +7,6 @@ import java.nio.file.{
   AccessDeniedException, FileSystems, FileVisitOption, FileVisitResult, Files,
   Path, Paths, SimpleFileVisitor, StandardCopyOption
 }
-import java.security.{DigestInputStream, MessageDigest}
 import java.util.EnumSet
 import java.util.zip.{ZipEntry, ZipInputStream}
 
@@ -194,45 +193,190 @@ private[scalanative] object IO {
 
   /** Compute a SHA-1 hash of `path`. */
   def sha1(path: Path, bufSize: Int = 1024): Array[Byte] = {
-    val digest = MessageDigest.getInstance("SHA-1")
+    val digest = new Sha1Digest()
     val stream = Files.newInputStream(path)
-    val digestStream = new DigestInputStream(stream, digest)
     try {
       val buf = new Array[Byte](bufSize)
-      while (digestStream.read(buf, 0, bufSize) != -1) {}
+      var n = stream.read(buf, 0, bufSize)
+      while (n != -1) {
+        digest.update(buf, 0, n)
+        n = stream.read(buf, 0, bufSize)
+      }
       digest.digest()
     } finally {
-      digestStream.close()
+      stream.close()
     }
   }
 
   /** Compute a SHA-1 hash of `files`. */
   def sha1files(files: Seq[Path], bufSize: Int = 1024): Array[Byte] = {
-    val digest = MessageDigest.getInstance("SHA-1")
+    val digest = new Sha1Digest()
     files.foreach { file =>
       val stream = Files.newInputStream(file)
-      val digestStream = new DigestInputStream(stream, digest)
       val buf = new Array[Byte](bufSize)
       try {
-        while (digestStream.read(buf, 0, bufSize) != -1) {}
+        var n = stream.read(buf, 0, bufSize)
+        while (n != -1) {
+          digest.update(buf, 0, n)
+          n = stream.read(buf, 0, bufSize)
+        }
       } finally {
-        digestStream.close()
+        stream.close()
       }
     }
     digest.digest()
   }
 
-  /** Unzip all members of the ZIP archive `archive` to `target`. */
+  // Standalone SHA-1 implementation -- Scala Native's own javalib doesn't
+  // port java.security.MessageDigest/DigestInputStream, and this is the only
+  // caller in the whole toolchain, so a private, self-contained digest here
+  // avoids adding a half-finished JCA surface to javalib just for this.
+  private final class Sha1Digest {
+    private val buffer = new Array[Byte](64)
+    private var bufferLen = 0
+    private var messageLen = 0L
+    private var h0 = 0x67452301
+    private var h1 = 0xefcdab89
+    private var h2 = 0x98badcfe
+    private var h3 = 0x10325476
+    private var h4 = 0xc3d2e1f0
+
+    private val w = new Array[Int](80)
+
+    private def processBlock(block: Array[Byte], off: Int): Unit = {
+      var i = 0
+      while (i < 16) {
+        val j = off + i * 4
+        w(i) = ((block(j) & 0xff) << 24) |
+          ((block(j + 1) & 0xff) << 16) |
+          ((block(j + 2) & 0xff) << 8) |
+          (block(j + 3) & 0xff)
+        i += 1
+      }
+      i = 16
+      while (i < 80) {
+        val v = w(i - 3) ^ w(i - 8) ^ w(i - 14) ^ w(i - 16)
+        w(i) = (v << 1) | (v >>> 31)
+        i += 1
+      }
+
+      var a = h0
+      var b = h1
+      var c = h2
+      var d = h3
+      var e = h4
+
+      i = 0
+      while (i < 80) {
+        var f = 0
+        var k = 0
+        if (i < 20) {
+          f = (b & c) | ((~b) & d)
+          k = 0x5a827999
+        } else if (i < 40) {
+          f = b ^ c ^ d
+          k = 0x6ed9eba1
+        } else if (i < 60) {
+          f = (b & c) | (b & d) | (c & d)
+          k = 0x8f1bbcdc
+        } else {
+          f = b ^ c ^ d
+          k = 0xca62c1d6
+        }
+
+        val temp = ((a << 5) | (a >>> 27)) + f + e + k + w(i)
+        e = d
+        d = c
+        c = (b << 30) | (b >>> 2)
+        b = a
+        a = temp
+        i += 1
+      }
+
+      h0 += a
+      h1 += b
+      h2 += c
+      h3 += d
+      h4 += e
+    }
+
+    private def updateByte(b: Byte): Unit = {
+      buffer(bufferLen) = b
+      bufferLen += 1
+      messageLen += 1
+      if (bufferLen == 64) {
+        processBlock(buffer, 0)
+        bufferLen = 0
+      }
+    }
+
+    def update(input: Array[Byte], offset: Int, len: Int): Unit = {
+      var i = 0
+      while (i < len) {
+        updateByte(input(offset + i))
+        i += 1
+      }
+    }
+
+    def digest(): Array[Byte] = {
+      val bitLen = messageLen * 8
+      updateByte(0x80.toByte)
+      while (bufferLen != 56) updateByte(0.toByte)
+      var i = 7
+      while (i >= 0) {
+        updateByte(((bitLen >>> (i * 8)) & 0xff).toByte)
+        i -= 1
+      }
+
+      val result = new Array[Byte](20)
+      val words = Array(h0, h1, h2, h3, h4)
+      i = 0
+      while (i < 5) {
+        result(i * 4) = ((words(i) >>> 24) & 0xff).toByte
+        result(i * 4 + 1) = ((words(i) >>> 16) & 0xff).toByte
+        result(i * 4 + 2) = ((words(i) >>> 8) & 0xff).toByte
+        result(i * 4 + 3) = (words(i) & 0xff).toByte
+        i += 1
+      }
+      result
+    }
+  }
+
+  /** Per-archive lock objects, keyed by absolute path -- see `unzip`'s doc
+   *  comment for why unzipping needs one.
+   */
+  private val archiveLocks =
+    new java.util.concurrent.ConcurrentHashMap[String, Object]()
+
+  private def lockFor(archive: Path): Object =
+    archiveLocks.computeIfAbsent(
+      archive.toAbsolutePath.toString,
+      _ => new Object
+    )
+
+  /** Unzip all members of the ZIP archive `archive` to `target`.
+   *
+   *  Concurrent invocations for the same archive serialize on a per-archive
+   *  lock: `findAndCompileNativeLibraries` unzips native libraries
+   *  concurrently (`Future.traverse`), and more than one of them can point
+   *  at the exact same archive path (e.g. two native-lib units bundled in
+   *  one jar) -- each `unzip()` call opens its own independent zip
+   *  filesystem, so the lock isn't needed to avoid a collision exception,
+   *  only to avoid N callers redundantly decompressing the same archive
+   *  into the same target directory at once.
+   */
   def unzip(archive: Path, target: Path): Unit = {
     Files.createDirectories(target)
-    val zipFS = FileSystems.newFileSystem(archive, null: ClassLoader)
-    try {
-      val rootDirectories = zipFS.getRootDirectories().iterator
-      while (rootDirectories.hasNext) {
-        val root = rootDirectories.next()
-        copyRecursive(root, target)
-      }
-    } finally zipFS.close()
+    lockFor(archive).synchronized {
+      val zipFS = FileSystems.newFileSystem(archive, null: ClassLoader)
+      try {
+        val rootDirectories = zipFS.getRootDirectories().iterator
+        while (rootDirectories.hasNext) {
+          val root = rootDirectories.next()
+          copyRecursive(root, target)
+        }
+      } finally zipFS.close()
+    }
   }
 
   /** Copy source directory and contents to target directory. */
