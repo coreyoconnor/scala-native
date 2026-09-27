@@ -7,6 +7,27 @@ import scala.util.Try
 sealed case class NIRSource(directory: Path, path: Path) {
   def debugName = s"${directory}:${path}"
   def exists: Boolean = this ne NIRSource.None
+
+  // Path.hashCode/equals for a non-default FileSystemProvider (e.g. a
+  // jar/zip-backed dependency path) folds in the owning FileSystem
+  // instance's identity, and each build run opens a dependency jar via a
+  // fresh FileSystem. Two builds' NIRSource for the same library defn
+  // therefore hash differently even though directory/path stringify
+  // identically, which propagates into every Defn's cached hashCode via
+  // DebugInfo.lexicalScopes and defeats IncrementalCodeGenContext's cache
+  // for defns from dependency jars. Compare/hash by path string content
+  // instead.
+  private def pathToString(p: Path): String = if (p eq null) null else p.toString
+
+  override def hashCode: Int =
+    pathToString(directory).## * 31 + pathToString(path).##
+
+  override def equals(other: Any): Boolean = other match {
+    case that: NIRSource =>
+      pathToString(directory) == pathToString(that.directory) &&
+        pathToString(path) == pathToString(that.path)
+    case _ => false
+  }
 }
 object NIRSource {
   object None extends NIRSource(null, null) {
