@@ -158,6 +158,10 @@ private[java] class PosixThread(
     // threads blocked in monitor enter (ObjectMonitor.enterMonitor).
     var wasWaitingOnMonitorEnter = false
     try {
+      // Plain access is fine here (unlike the fast-path check above and
+      // unpark()'s write, see its comment): this read and unpark()'s write
+      // are both always made while holding `lock`, so the mutex's own
+      // acquire/release semantics already order them correctly.
       if (counter > 0) { // no wait needed
         counter = 0
         return
@@ -206,8 +210,24 @@ private[java] class PosixThread(
     this.synchronized {
       if (terminated) return
       pthread_mutex_lock(lock)
-      val s = counter
-      counter = 1
+      // Go through counterAtomic, not a plain `counter = 1` store: park()'s
+      // fast-path check (top of that method, before it ever takes this same
+      // mutex) reads this field via counterAtomic with no mutex held at all
+      // -- so the write that fast path is meant to observe must itself be
+      // atomic. A plain store here was observed to lose the permit under
+      // real contention: an unpark() landing between a target thread's
+      // status-set-to-WAITING and its actual next park() call (an
+      // intentional, expected window in AbstractQueuedSynchronizer's wakeup
+      // protocol) would sometimes not be visible to that thread's very next
+      // fast-path check, leaving it parked forever with no further wakeup
+      // coming (its AQS node had already been designated "signalled" by the
+      // unparker, so no other thread would ever retry waking it).
+      // (The OTHER read/write sites of `counter`, inside park()'s own
+      // mutex-held section above and in this method, are fine left as plain
+      // accesses: they're always made while holding this same `lock`, so
+      // the mutex's own acquire/release semantics already order them
+      // correctly regardless of which store/load instruction is used.)
+      val s = counterAtomic.exchange(1)
       val index = conditionIdx
       if (s < 1 && index != ConditionUnset)
         pthread_cond_signal(condition(index))
