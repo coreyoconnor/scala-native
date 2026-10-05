@@ -815,10 +815,20 @@ object CompletableFuture {
     }
 
     override def isReleasable(): Boolean = {
-      if (Thread.interrupted()) interrupted = true
-      (interrupted && interruptible) ||
-        (deadline != 0L && (nanos <= 0L || { nanos = deadline - System.nanoTime(); nanos <= 0L })) ||
-        thread == null
+      if (thread == null) true
+      else {
+        if (Thread.interrupted()) interrupted = true
+        if (interrupted && interruptible) {
+          thread = null
+          true
+        } else if (
+          deadline != 0L &&
+          (nanos <= 0L || { nanos = deadline - System.nanoTime(); nanos <= 0L })
+        ) {
+          thread = null
+          true
+        } else false
+      }
     }
 
     override def block(): Boolean = {
