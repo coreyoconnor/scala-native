@@ -191,9 +191,10 @@ static bool isContinuationStaleTrapFault(int signal, siginfo_t *siginfo,
         return false;
     if (!isAccessPermissionFault(signal, siginfo->si_code))
         return false;
-    if (!atomic_load_explicit(&Synchronizer_stopThreads, memory_order_acquire))
-        return false;
-    return true;
+    // See the identical fix in immix/Synchronizer.c: Synchronizer_stopThreads
+    // is a racy snapshot at handler-run time, while page identity is permanent
+    // (trap pages are never freed).
+    return YieldPointTrap_isRegisteredPage(siginfo->si_addr);
 }
 
 static void SafepointTrapHandler(int signal, siginfo_t *siginfo, void *uap) {
