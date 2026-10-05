@@ -44,9 +44,18 @@ private[scalanative] object NativeLib {
     val destPath = unpackNativeCode(nativeLib)
     val paths = findNativePaths(destPath)
     val projConfig = configureNativeLibrary(config, analysis, destPath)
-    Future.sequence {
-      paths.map(LLVM.compile(projConfig, analysis, _))
-    }
+    // A hash file scoped to THIS library's own dest dir/projConfig, instead
+    // of the shared top-level workDir one -- see the comment on
+    // Build.userConfigHasChanged for why the shared file made this
+    // per-library cache check always report "changed". destPath survives
+    // across runs (unpackNativeCode only wipes it when the source jar itself
+    // changed), so this file does too.
+    val hashPath = destPath.resolve(Build.userConfigHashFile)
+    Future
+      .sequence {
+        paths.map(LLVM.compile(projConfig, analysis, _, hashPath))
+      }
+      .andThen { case Success(_) => Build.dumpUserConfigHash(projConfig, hashPath) }
   }
 
   /** Update the project configuration if a project `Descriptor` is present.
@@ -194,7 +203,7 @@ private[scalanative] object NativeLib {
     val workDir = config.workDir
     val classpath = config.classPath
     val nativeCodeDir = workDir.resolve("dependencies")
-    if (Build.userConfigHasChanged(config))
+    if (Build.userConfigHasChanged(config, Build.defaultUserConfigHashPath(config)))
       IO.deleteRecursive(nativeCodeDir)
 
     val nativeLibPaths = classpath.flatMap { path =>

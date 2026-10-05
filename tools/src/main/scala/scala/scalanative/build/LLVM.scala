@@ -49,7 +49,13 @@ private[scalanative] object LLVM {
   def compile(
       config: Config,
       analysis: ReachabilityAnalysis.Result,
-      path: Path
+      path: Path,
+      // Explicit, required hash-file path for the userConfigHasChanged check
+      // (was implicitly always config.workDir.resolve(Build.userConfigHashFile)
+      // -- pass Build.defaultUserConfigHashPath(config) for identical
+      // behavior). See the comment on Build.userConfigHasChanged for why
+      // this exists.
+      hashPath: Path
   )(implicit
       ec: ExecutionContext
   ): Future[Path] = {
@@ -60,7 +66,7 @@ private[scalanative] object LLVM {
     val outpath = inpath + oExt
     val objPath = Paths.get(outpath)
     // compile if out of date or no object file
-    if (needsCompiling(path, objPath)) compileFile(path, objPath)
+    if (needsCompiling(path, objPath, hashPath)) compileFile(path, objPath)
     else Future.successful(objPath)
   }
 
@@ -397,11 +403,11 @@ private[scalanative] object LLVM {
    *  @return
    *    true if it needs compiling false otherwise.
    */
-  @inline private def needsCompiling(in: Path, out: Path)(implicit
-      config: Config
+  @inline private def needsCompiling(in: Path, out: Path, hashPath: Path)(
+      implicit config: Config
   ): Boolean = {
     in.toFile().lastModified() > out.toFile().lastModified() ||
-    Build.userConfigHasChanged(config)
+    Build.userConfigHasChanged(config, hashPath)
   }
 
   /** Looks at all the object files to see if one is newer than the output

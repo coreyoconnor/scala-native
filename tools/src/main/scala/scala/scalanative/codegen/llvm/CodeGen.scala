@@ -71,7 +71,7 @@ object CodeGen {
     Scope { implicit in =>
       val env = assembly.map(defn => defn.name -> defn).toMap
       val outputDirPath = config.workDir.resolve("generated")
-      if (Build.userConfigHasChanged(config))
+      if (Build.userConfigHasChanged(config, Build.defaultUserConfigHashPath(config)))
         IO.deleteRecursive(outputDirPath)
       Files.createDirectories(outputDirPath)
       val outputDir = VirtualDirectory.real(outputDirPath)
